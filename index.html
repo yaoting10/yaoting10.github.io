@@ -221,26 +221,49 @@
     <header>
       
         <div class="icon"></div>
-        <time datetime="2016-02-18T07:33:20.000Z"><a href="/2016/02/18/hello-world/">2016-02-18</a></time>
+        <time datetime="2016-02-25T01:24:27.000Z"><a href="/2016/02/25/hello-world/">2016-02-25</a></time>
       
       
   
-    <h1 class="title"><a href="/2016/02/18/hello-world/">Hello World</a></h1>
+    <h1 class="title"><a href="/2016/02/25/hello-world/">活动总结</a></h1>
   
 
     </header>
     <div class="entry">
       
-        <p>Welcome to <a href="http://yaoting10.github.io/" target="_blank" rel="external">TimYao’s Blog</a>! This is your very first post. Check <a href="https://hexo.io/docs/" target="_blank" rel="external">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html" target="_blank" rel="external">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues" target="_blank" rel="external">GitHub</a>.</p>
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo new <span class="string">"My New Post"</span></span><br></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/writing.html" target="_blank" rel="external">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/server.html" target="_blank" rel="external">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/generating.html" target="_blank" rel="external">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String [] args)</span></span>&#123;</span><br><span class="line">    System.out.println(<span class="string">"Hello World!"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/deployment.html" target="_blank" rel="external">Deployment</a></p>
+        <p>近期做了一些运营的活动，这里做一下小结。</p>
+<h3 id="代码优化"><a href="#代码优化" class="headerlink" title="代码优化:"></a>代码优化:</h3><ol>
+<li><p>多线程<br>使用原因：IO阻塞会释放CPU； 多CPU每个对应一个<br>多少线程： 启动线程数=【任务执行时间/(任务执行时间-IO等待时间)】*CPU数<br>线程安全问题：对象是无状态的；使用threadLocal 方法内对象；并发访问资源时加锁<br>在做数据存储和修改时，准确性应该放在同一个事务中判断。比如：在抢红包活动中，用户报名时，（后台需要存储报名人信息），当时是使用一个ajax发出一个请求判断该用户是否报名，如果未报名，则验证通过，用户再发出一个请求报名。后台直接存储该用户信息。通常都是如此做的。但在高并发的情况下或者服务器处理速度较慢的情况下。第一个请求成功，验证通过，第二个请求还未得到响应时，用户又发出一个请求。导致数据存储错误。通常做法是，无论之前验证是否成功，在存储数据前都需先检验数据是否已经存在。（即将数据准确性校验放在存储事务中）<br>在做并发资源竞争时，对应资源应该加锁，但加锁是一把双刃剑，既能保证数据准确性，但也会导致线程进入等待，排队处理。引起服务器处理不过来</p>
+</li>
+<li><p>资源复用<br>开销很大的资源，需要使用资源复用。<br>如数据库连接、网络连接、线程、复杂对象。<br>有两种模式来控制：1、单例模式，2、对象池<br>这点，在我们已使用到的框架中，基本都做了，如数据库链接池、Spring 封装的线程池，和对象池。</p>
+</li>
+<li><p>垃圾回收<br>有助于程序优化和参数调优，分为stack和heap，堆空间分为Young Generation（Eden  from  to）和Old Generation，新建对象在Eden，当Eden满时，复制到from；Eden又满了，将Eden和from——》to，下次Eden+to——》from，young都满了就放到old，如果都满了就触发Full GC（时间比较长）合理设置young 和 old大小，尽量减少Full GC<br>旧生代空间只有在新生代转入、创建大对象、大数组时才会出现不足现象, 代码中尽量少的使用大对象，导致对象创建直接进入老年代, Minor GC时无法回收对象, 合理控制代码中的静态集合对象。导致内存溢出。</p>
+</li>
+</ol>
+<h3 id="数据存储策略"><a href="#数据存储策略" class="headerlink" title="数据存储策略:"></a>数据存储策略:</h3><ol>
+<li><p>使用缓存改善<br>网站优化第一定律：优先考虑缓存优化<br>原因：数据库访问压力太大；<br>数据访问遵循2-8定律<br>将访问多的20%的数据放在缓存上，可分为应用服务器端的本地缓存和分布式的远端缓存</p>
+</li>
+<li><p>适当的使用NoSql存储，分解关系型数据库的压力。</p>
+</li>
+<li><p>使用关系型数据库时：数据量达到一定的值时，为保证效率，可以在适当的字段上加索引。（索引也是一把双刃剑，需慎用）</p>
+</li>
+<li><p>使用关系型数据库时：对热点字段进行冗余设计。尽量减少join 查询。</p>
+</li>
+</ol>
+<h3 id="秒杀活动应对策略"><a href="#秒杀活动应对策略" class="headerlink" title="秒杀活动应对策略:"></a>秒杀活动应对策略:</h3><ol>
+<li><p>独立部署<br>和原有业务部署在不同服务器，防止高并发拖垮整个网站</p>
+</li>
+<li><p>页面静态化<br>将商品详情、描述静态化到页面</p>
+</li>
+<li><p>租借秒杀网络带宽<br>向运营商租借带宽</p>
+</li>
+<li><p>动态生成随机下单页面URL<br>无法在秒杀前访问下单页面的URL：加入服务器端生成的随机数作为参数，在秒杀开始前才能得到</p>
+</li>
+<li><p>控制秒杀购买页面的点亮<br>秒杀商品页面加入一个javascript引用，该javascript中加入秒杀是否开始的标志和下单页面URL的随机数参数，该javascript使用随机版本号，不可被浏览器缓存<br>当秒杀开始时，生成一个新的javascript文件并被用户浏览器加载</p>
+</li>
+<li><p>允许第一个订单提交<br>控制进入下单页面入口，只有先提交的少数用户可进入，后边的用户直接进入秒杀结束页面</p>
+</li>
+</ol>
 
       
     </div>
@@ -266,7 +289,7 @@
     <aside id="sidebar" class="alignright">
   <div class="search">
   <form action="//google.com/search" method="get" accept-charset="utf-8">
-    <input type="search" name="q" results="0" placeholder="搜尋">
+    <input type="search" name="q" results="0" placeholder="搜索">
     <input type="hidden" name="q" value="site:yoursite.com">
   </form>
 </div>
